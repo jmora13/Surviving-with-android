@@ -1,158 +1,124 @@
-package com.survivingwithandroid.weathermap;
+package com.strat.jose.stratusweather;
 
-import android.support.v4.app.FragmentActivity;
+import androidx.fragment.app.FragmentActivity;
+
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Tile;
 import com.google.android.gms.maps.model.TileOverlay;
 import com.google.android.gms.maps.model.TileOverlayOptions;
 import com.google.android.gms.maps.model.TileProvider;
 import com.google.android.gms.maps.model.UrlTileProvider;
+import com.strat.jose.stratusweather.R;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Locale;
 
-public class MapsActivity extends FragmentActivity {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
-    private GoogleMap mMap; // Might be null if Google Play services APK is not available.
-    private static String OWM_TILE_URL = "http://tile.openweathermap.org/map/%s/%d/%d/%d.png";
+    private GoogleMap mMap;
     private Spinner spinner;
-    private String tileType = "clouds";
-    private TileOverlay tileOver;
+    private String tileType;
+    private SupportMapFragment mapFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        spinner = (Spinner) findViewById(R.id.tileType);
-
-        String[] tileName = new String[]{"Clouds", "Temperature", "Precipitations", "Snow", "Rain", "Wind", "Sea level press."};
-
+        String[] tileName = new String[]{"Clouds", "Precipitation","Sea level Pressure","Wind Speed", "Temperature" };
+        spinner = findViewById(R.id.tileType);
         ArrayAdapter<String> adpt = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, tileName);
-
         spinner.setAdapter(adpt);
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
 
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
+                                              @Override
+                                              public void onNothingSelected(AdapterView<?> parent) {
 
-            }
+                                              }
 
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                 // Check click
-                switch (position) {
-                    case 0:
-                        tileType = "clouds";
-                        break;
-                    case 1:
-                        tileType = "temp";
-                        break;
-                    case 2:
-                        tileType = "precipitation";
-                        break;
-                    case 3:
-                        tileType = "snow";
-                        break;
-                    case 4:
-                        tileType = "rain";
-                        break;
-                    case 5:
-                        tileType = "wind";
-                        break;
-                    case 6:
-                        tileType = "pressure";
-                        break;
+                                              @Override
+                                              public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                                                  // Check click
+                                                  switch (position) {
+                                                      case 0:
+                                                          clearTileCache();
+                                                          tileType = "clouds_new";
+                                                          break;
+                                                      case 1:
+                                                          clearTileCache();
+                                                          tileType = "precipitation_new";
+                                                          break;
+                                                      case 2:
+                                                          clearTileCache();
+                                                          tileType = "pressure_new";
+                                                          break;
+                                                      case 3:
+                                                          clearTileCache();
+                                                          tileType = "wind_new";
+                                                          break;
+                                                      case 4:
+                                                          clearTileCache();
+                                                          tileType = "temp_new";
+                                                          break;
 
-                }
+                                                  }
+                                              }
+                                          });
 
-                if (mMap != null) {
-                    tileOver.remove();
-                    setUpMap();
-                }
-
-
-            }
-        });
-        setUpMapIfNeeded();
+                // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+         mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
     }
 
+    /**
+     * Manipulates the map once available.
+     * This callback is triggered when the map is ready to be used.
+     * This is where we can add markers or lines, add listeners or move the camera. In this case,
+     * we just add a marker near Sydney, Australia.
+     * If Google Play services is not installed on the device, the user will be prompted to install
+     * it inside the SupportMapFragment. This method will only be triggered once the user has
+     * installed Google Play services and returned to the app.
+     */
     @Override
-    protected void onResume() {
-        super.onResume();
-        setUpMapIfNeeded();
-    }
+    public void onMapReady(GoogleMap googleMap) {
+        mMap = googleMap;
 
-    /**
-     * Sets up the map if it is possible to do so (i.e., the Google Play services APK is correctly
-     * installed) and the map has not already been instantiated.. This will ensure that we only ever
-     * call {@link #setUpMap()} once when {@link #mMap} is not null.
-     * <p/>
-     * If it isn't installed {@link SupportMapFragment} (and
-     * {@link com.google.android.gms.maps.MapView MapView}) will show a prompt for the user to
-     * install/update the Google Play services APK on their device.
-     * <p/>
-     * A user can return to this FragmentActivity after following the prompt and correctly
-     * installing/updating/enabling the Google Play services. Since the FragmentActivity may not
-     * have been completely destroyed during this process (it is likely that it would only be
-     * stopped or paused), {@link #onCreate(Bundle)} may not be called again so we should call this
-     * method in {@link #onResume()} to guarantee that it will be called.
-     */
-    private void setUpMapIfNeeded() {
-        // Do a null check to confirm that we have not already instantiated the map.
-        if (mMap == null) {
-            // Try to obtain the map from the SupportMapFragment.
-            mMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map))
-                    .getMap();
-            // Check if we were successful in obtaining the map.
-            if (mMap != null) {
-                setUpMap();
-            }
-        }
-    }
+        // Move the camera
+        Bundle bundle = getIntent().getExtras();
+        double lat = bundle.getDouble("lat");
+        double lon = bundle.getDouble("lon");
+        LatLng indy = new LatLng(lat, lon);
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(indy, 7));
 
-    /**
-     * This is where we can add markers or lines, add listeners or move the camera. In this case, we
-     * just add a marker near Africa.
-     * <p/>
-     * This should only be called once and when we are sure that {@link #mMap} is not null.
-     */
-    private void setUpMap() {
-       // Add weather tile
-       //tileOver = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(createTilePovider()));
-
-        tileOver = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(createTransparentTileProvider()));
-    }
-
-    private TileProvider createTransparentTileProvider() {
-        return new TransparentTileOWM(tileType);
-    }
-
-
-    private TileProvider createTilePovider() {
         TileProvider tileProvider = new UrlTileProvider(256, 256) {
             @Override
             public URL getTileUrl(int x, int y, int zoom) {
-                String fUrl = String.format(OWM_TILE_URL, tileType == null ? "clouds" : tileType, zoom, x, y);
-                URL url = null;
+
+                /* Define the URL pattern for the tile images */
+                String s = String.format(Locale.US, "https://tile.openweathermap.org/map/%s/%d/%d/%d.png?appid=c79605804bcd8ab8a364b0ef5310c183",
+                        tileType,zoom, x, y);
+
                 try {
-                    url = new URL(fUrl);
+                    return new URL(s);
+                } catch (MalformedURLException e) {
+                    throw new AssertionError(e);
                 }
-                catch(MalformedURLException mfe) {
-                    mfe.printStackTrace();
-                }
-
-                return url;
             }
-        } ;
+        };
 
-        return tileProvider;
+        TileOverlay tileOverlay = mMap.addTileOverlay(new TileOverlayOptions()
+                .tileProvider(tileProvider));
     }
 }
